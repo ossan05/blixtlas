@@ -4,6 +4,36 @@ from pygame.locals import *
 import random
 import math
 
+class Extrabus(pygame.sprite.Sprite):
+    def __init__(self, path, x_pos, y_pos, xnode, last_station):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (50, 20))
+        self.path = path
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x_pos
+        self.rect.centery = y_pos
+        self.xnode = xnode
+        self.last_station = last_station
+    def update(self):
+        global station_colors, re
+        for bus in extrabus_group:
+            if bus.rect.centerx < screen.get_width() / rows * (bus.path[bus.xnode][0] + 1):
+                bus.rect.centerx += 2
+            elif bus.rect.centery < screen.get_height() / rows * bus.path[bus.xnode][1] - 2:
+                bus.rect.centery += 2
+            elif bus.rect.centery > screen.get_height() / rows * bus.path[bus.xnode][1] + 2:
+                bus.rect.centery -= 2
+            elif bus.xnode != len(bus.path) - 1:
+                station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
+                bus.xnode += 1
+            elif bus.rect.centerx < screen.get_width():
+                bus.rect.centerx += 2
+                if bus.last_station:
+                    station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
+                    re += 1
+                    bus.last_station = False
+
+
 def list_duplicates_of(seq,item):
     start_at = -1
     locs = []
@@ -38,10 +68,47 @@ def longest_sublist(nested_list):
         lp.append(len(i))
     return max(lp)
 
+def make_path():
+    global path, blue_stations
+    blue_stations.sort(key=lambda x: x[0])
+    x = blue_stations[0][0]
+    n = 0
+    xy_list2 = [[blue_stations[0]]]
+    path = []
+
+    for i in blue_stations[1:]:
+        if i[0] == x:
+            xy_list2[n].append(i)
+        else:
+            xy_list2.append([i])
+            x = blue_stations[blue_stations.index(i)][0]
+            n += 1
+
+    for i in range(longest_sublist(xy_list2)):
+        paths = list(product(*xy_list2))
+        buh = 0
+        d = []
+
+        for e, ii in enumerate(paths):  # tveksam ändring
+            for x in range(len(ii)-1):
+                buh += math.dist(ii[x], ii[x+1])
+            d.append(buh)
+            buh = 0
+
+        ind = d.index(min(d))
+        path.append(list(paths[ind]))
+
+        for b in range(len(xy_list2)):
+            for j in path[i]:   # kan vara annorlunda ?
+                if j in xy_list2[b]:
+                    xy_list2[b].remove(j)
+        xy_list2 = empty_list_remove(xy_list2)
+    return path
+
 colors = ["blue", "grey"]
 station_colors, xy_list, blue_stations = [], [], []
 
-rows = random.randint(7, 12)
+rows = random.randint(10, 13)
 station_amount = random.randint(2, (rows - 1) * (rows - 2))
 
 for i in range(station_amount):
@@ -61,43 +128,22 @@ if "blue" not in station_colors:
     station_colors[index] = "blue"
     blue_stations.append(xy_list[index])
 
-blue_stations.sort(key=lambda x: x[0])
-x = blue_stations[0][0]
-n = 0
-xy_list2 = [[blue_stations[0]]]
+path = make_path()
 
-for i in blue_stations[1:]:
-    if i[0] == x:
-        xy_list2[n].append(i)
-    else:
-        xy_list2.append([i])
-        x = blue_stations[blue_stations.index(i)][0]
-        n += 1
+def reset():
+    global blue_stations, station_colors, station_color
+    blue_stations, station_colors = [], []
+    for i in range(station_amount):
+        station_color = random.choice(colors)
+        station_colors.append(station_color)
+        if station_color == "blue":
+            blue_stations.append(xy_list[i])
+        if "blue" not in station_colors:
+            index = random.randint(0, len(station_colors) - 1)
+            station_colors[index] = "blue"
+            blue_stations.append(xy_list[index])
+    return make_path()
 
-path = []
-
-for i in range(longest_sublist(xy_list2)):
-    paths = list(product(*xy_list2))
-    buh = 0
-    d = []
-
-    for e, ii in enumerate(paths):
-        for x in range(len(ii)-1):
-            buh += math.dist(ii[x], ii[x+1])
-        d.append(buh)
-        buh = 0
-
-    ind = d.index(min(d))
-    path.append(list(paths[ind]))
-
-    for b in range(len(xy_list2)):
-        for j in path[i]:   # kan vara annorlunda ?
-            if j in xy_list2[b]:
-                xy_list2[b].remove(j)
-    xy_list2 = empty_list_remove(xy_list2)
-    print(xy_list2)
-    print(paths)
-    print(path)
 
 pygame.init()
 screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
@@ -105,19 +151,18 @@ pygame.display.set_caption("Simulation")
 fullscreen = False
 clock = pygame.time.Clock()
 
-text = "Smarta bussar"
+text = "Fågelvägen"
 test_font = pygame.font.SysFont("arial", 100)
-text_surface = test_font.render(text, False, "black")
+text_surface = test_font.render(text, False, "red")
 text_width, text_height = test_font.size(text)
 
 bus = pygame.image.load("graphics\stor-buss.png")
-bus = pygame.transform.scale(bus, (50, 20))
-
+bus = pygame.transform.scale(bus, (70, 30))
 
 road_thickness = 25
-speed = 5
+speed = 7
 node = 0
-path_number = -1
+
 
 last_station_on = True
 
@@ -133,7 +178,6 @@ while True:
             if not fullscreen:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             start = True
-            path_number -= 1
         if event.type == KEYDOWN:
             if event.key == K_f:
                 fullscreen = not fullscreen
@@ -142,17 +186,21 @@ while True:
                 else:
                     screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
                 start = True
-                path_number -= 1
 
     if start:
         bus_start = screen.get_height() * int(rows / 2) / rows
         bus_rect = bus.get_rect(center = (0, bus_start)) 
+        extrabus_group = pygame.sprite.Group()
+        re = 0
         node = 0
-        if path_number != len(path) - 1:
-            path_number += 1  
+        print(path)
         last_station_on = True  
-        if "blue" in station_colors:
-            start = False
+        if "blue" not in station_colors:
+            path = reset()
+        for i in path[1:]:
+            new_bus = Extrabus(i, 0, screen.get_height() * i[0][1] / rows, 0, True)
+            extrabus_group.add(new_bus)
+        start = False
 
     # Road building
     for i in range(1, rows):
@@ -162,26 +210,31 @@ while True:
     for i in range(station_amount):
         pygame.draw.rect(screen, (station_colors[i]), pygame.Rect((screen.get_width() * 1.5 + xy_list[i][0] * screen.get_width()) / rows, screen.get_height() * xy_list[i][1] / rows, 15, 15))
     
-    # Bus Movement
-    if bus_rect.centerx < screen.get_width() / rows * (path[path_number][node][0] + 1):
+    # Big Bus Movement
+    if bus_rect.centerx < screen.get_width() / rows * (path[0][node][0] + 1):
         bus_rect.centerx += speed
-    elif bus_rect.centery < screen.get_height() / rows * path[path_number][node][1] - speed:
+    elif bus_rect.centery < screen.get_height() / rows * path[0][node][1] - speed:
         bus_rect.centery += speed
-    elif bus_rect.centery > screen.get_height() / rows * path[path_number][node][1] + speed:
+    elif bus_rect.centery > screen.get_height() / rows * path[0][node][1] + speed:
         bus_rect.centery -= speed
-    elif node != len(path[path_number]) - 1:
-        station_colors[xy_list.index(path[path_number][node])] = "grey"
+    elif node != len(path[0]) - 1:
+        station_colors[xy_list.index(path[0][node])] = "grey"
         node += 1
     elif bus_rect.left < screen.get_width():
         bus_rect.centerx += speed
         if last_station_on:
-            station_colors[xy_list.index(path[path_number][node])] = "grey"
+            station_colors[xy_list.index(path[0][node])] = "grey"
             last_station_on = False
-    else:
+            re += 1
+    elif re == len(path):
         start = True
 
     screen.blit(bus, bus_rect)
     screen.blit(text_surface, ((screen.get_width() - text_width)/ 2, (screen.get_height() - text_width) / 10))
+    extrabus_group.draw(screen)
+    extrabus_group.update()
+    print(re)
+    print(longest_sublist(path) + 1)
 
     pygame.display.update()
     clock.tick(60)
