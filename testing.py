@@ -193,7 +193,6 @@ while True:
         extrabus_group = pygame.sprite.Group()
         re = 0
         node = 0
-        print(path)
         last_station_on = True  
         if "blue" not in station_colors:
             path = reset()
@@ -233,8 +232,6 @@ while True:
     screen.blit(text_surface, ((screen.get_width() - text_width)/ 2, (screen.get_height() - text_width) / 10))
     extrabus_group.draw(screen)
     extrabus_group.update()
-    print(re)
-    print(longest_sublist(path) + 1)
 
     pygame.display.update()
     clock.tick(60)
