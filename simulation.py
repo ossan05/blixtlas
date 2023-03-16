@@ -4,10 +4,34 @@ from pygame.locals import *
 import random
 import math
 
+class Background(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = [0, 0]
+    def update(self):
+        self.image = pygame.transform.scale(self.image, (screen.get_width(), screen.get_height()))
+        self.rect = self.image.get_rect()
+
+class RoadHorizontal(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load("graphics/road2.png"), (213, 60))  # (80, 60) för road.png
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+
+class RoadVertical(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.transform.rotate(pygame.image.load("graphics/road2.png"), 90), (60, 213))  # (60, 80) för road.png
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
+
 class Extrabus(pygame.sprite.Sprite):
     def __init__(self, path, x_pos, y_pos, xnode, last_station):
         super().__init__()
-        self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (50, 20))
+        self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (75, 30))
         self.path = path
         self.rect = self.image.get_rect()
         self.rect.centerx = x_pos
@@ -108,7 +132,7 @@ def make_path():
 colors = ["blue", "grey"]
 station_colors, xy_list, blue_stations = [], [], []
 
-rows = random.randint(10, 13)
+rows = 7
 station_amount = random.randint(2, (rows - 1) * (rows - 2))
 
 for i in range(station_amount):
@@ -144,22 +168,15 @@ def reset():
             blue_stations.append(xy_list[index])
     return make_path()
 
-
 pygame.init()
 screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
 pygame.display.set_caption("Simulation")
 fullscreen = False
 clock = pygame.time.Clock()
 
-text = "Fågelvägen"
-test_font = pygame.font.SysFont("arial", 100)
-text_surface = test_font.render(text, False, "red")
-text_width, text_height = test_font.size(text)
-
 bus = pygame.image.load("graphics\stor-buss.png")
-bus = pygame.transform.scale(bus, (70, 30))
+bus = pygame.transform.scale(bus, (110, 45))
 
-road_thickness = 25
 speed = 7
 node = 0
 
@@ -169,7 +186,6 @@ last_station_on = True
 start = True
 
 while True:
-    screen.fill("lightgrey")
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -178,6 +194,7 @@ while True:
             if not fullscreen:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             start = True
+            bk_group.update()
         if event.type == KEYDOWN:
             if event.key == K_f:
                 fullscreen = not fullscreen
@@ -186,6 +203,7 @@ while True:
                 else:
                     screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
                 start = True
+                bk_group.update()
 
     if start:
         bus_start = screen.get_height() * int(rows / 2) / rows
@@ -201,10 +219,21 @@ while True:
             extrabus_group.add(new_bus)
         start = False
 
-    # Road building
+    bk_group = pygame.sprite.Group()
+    bk = Background()
+    bk_group.add(bk)
+
+    road_group = pygame.sprite.Group()
     for i in range(1, rows):
-        pygame.draw.rect(screen, ("black"), pygame.Rect(0, screen.get_height() / rows * i - road_thickness / 2, screen.get_width(), road_thickness))
-        pygame.draw.rect(screen, ("black"), pygame.Rect(screen.get_width() / rows * i - road_thickness / 2, 0, road_thickness, screen.get_height()))
+        for j in range(math.ceil(screen.get_width()/213)):
+            new_h_road = RoadHorizontal(screen.get_width()/213 + 213 * j, screen.get_height() / rows * i)
+            road_group.add(new_h_road)
+        for j in range(math.ceil(screen.get_height()/213)):
+            new_v_road = RoadVertical(screen.get_width() / rows * i, screen.get_height()/213 + 213 * j)
+            road_group.add(new_v_road)
+        
+    bk_group.draw(screen)
+    road_group.draw(screen)
     
     for i in range(station_amount):
         pygame.draw.rect(screen, (station_colors[i]), pygame.Rect((screen.get_width() * 1.5 + xy_list[i][0] * screen.get_width()) / rows, screen.get_height() * xy_list[i][1] / rows, 15, 15))
@@ -229,7 +258,6 @@ while True:
         start = True
 
     screen.blit(bus, bus_rect)
-    screen.blit(text_surface, ((screen.get_width() - text_width)/ 2, (screen.get_height() - text_width) / 10))
     extrabus_group.draw(screen)
     extrabus_group.update()
 
