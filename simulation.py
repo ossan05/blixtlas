@@ -4,29 +4,19 @@ from pygame.locals import *
 import random
 import math
 
-class Background(pygame.sprite.Sprite):
-    def __init__(self):
-        super().__init__()
-        self.image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
-        self.rect = self.image.get_rect()
-        self.rect.topleft = [0, 0]
-    def update(self):
-        self.image = pygame.transform.scale(self.image, (screen.get_width(), screen.get_height()))
-        self.rect = self.image.get_rect()
-
 class RoadHorizontal(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.transform.scale(pygame.image.load("graphics/road2.png"), (213, 60))  # (80, 60) för road.png
         self.rect = self.image.get_rect()
-        self.rect.center = [x, y]
+        self.rect.center = x, y
 
 class RoadVertical(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.transform.scale(pygame.transform.rotate(pygame.image.load("graphics/road2.png"), 90), (60, 213))  # (60, 80) för road.png
         self.rect = self.image.get_rect()
-        self.rect.center = [x, y]
+        self.rect.center = x, y
 
 class Extrabus(pygame.sprite.Sprite):
     def __init__(self, path, x_pos, y_pos, xnode, last_station):
@@ -177,6 +167,8 @@ clock = pygame.time.Clock()
 bus = pygame.image.load("graphics\stor-buss.png")
 bus = pygame.transform.scale(bus, (110, 45))
 
+bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+
 speed = 7
 node = 0
 
@@ -194,7 +186,7 @@ while True:
             if not fullscreen:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             start = True
-            bk_group.update()
+            bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
         if event.type == KEYDOWN:
             if event.key == K_f:
                 fullscreen = not fullscreen
@@ -203,7 +195,7 @@ while True:
                 else:
                     screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
                 start = True
-                bk_group.update()
+                bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
 
     if start:
         bus_start = screen.get_height() * int(rows / 2) / rows
@@ -219,10 +211,6 @@ while True:
             extrabus_group.add(new_bus)
         start = False
 
-    bk_group = pygame.sprite.Group()
-    bk = Background()
-    bk_group.add(bk)
-
     road_group = pygame.sprite.Group()
     for i in range(1, rows):
         for j in range(math.ceil(screen.get_width()/213)):
@@ -232,7 +220,7 @@ while True:
             new_v_road = RoadVertical(screen.get_width() / rows * i, screen.get_height()/213 + 213 * j)
             road_group.add(new_v_road)
         
-    bk_group.draw(screen)
+    screen.blit(bk_image, (0,0))
     road_group.draw(screen)
     
     for i in range(station_amount):

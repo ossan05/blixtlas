@@ -2,57 +2,78 @@ import pygame
 from sys import exit
 from pygame.locals import *
 import random
-import math
-
-# class Extrabus(pygame.sprite.Sprite):
-#     def __init__(self, path, x_pos, y_pos, xnode, last_station):
-#         super().__init__()
-#         self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (50, 20))
-#         self.path = path
-#         self.rect = self.image.get_rect()
-#         self.rect.center = x_pos, y_pos
-#         self.xnode = xnode
-#         self.last_station = last_station
-#     def update(self):
-#         global station_colors, re
-#         for bus in extrabus_group:
-#             if bus.rect.centerx < screen.get_width() / rows * (bus.path[bus.xnode][0] + 1):
-#                 bus.rect.centerx += 2
-#             elif bus.rect.centery < screen.get_height() / rows * bus.path[bus.xnode][1] - 2:
-#                 bus.rect.centery += 2
-#             elif bus.rect.centery > screen.get_height() / rows * bus.path[bus.xnode][1] + 2:
-#                 bus.rect.centery -= 2
-#             elif bus.xnode != len(bus.path) - 1:
-#                 station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-#                 bus.xnode += 1
-#             elif bus.rect.centerx < screen.get_width():
-#                 bus.rect.centerx += 2
-#                 if bus.last_station:
-#                     station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-#                     re += 1
-#                     bus.last_station = False
+# import math
 
 class Station(pygame.sprite.Sprite):
     def __init__(self, x_pos, y_pos, image):
         super().__init__()
-        self.rect = self.image.get_rect()
+        self.image = pygame.transform.scale(pygame.image.load(image), (45, 30)) #0.662797944631
+        self.rect = self.image.get_rect()      
         self.rect.centerx = x_pos
         self.rect.centery = y_pos
-        self.image = pygame.image.load(image)
-    def update(self):
-        for station in station_group:
-            if pygame.sprite.spritecollideany(station, extrabus_group) not None or if pygame.sprite.collide_rect(station, bus_rect):
-                station.image = "graphics\empty-station"
-                print("collision")
-        
 
+station_amount = 7
+fullscreen = False
+
+pygame.init()
+screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
+clock = pygame.time.Clock()
+
+blue_stations = []
 station_group = pygame.sprite.Group()
-for i in range(7):
-    new_station = Station(random.randint(), 5, random.choice(["graphics\empty-station", "graphics\full-station"]))
+blue_station_amount = random.randint(1, station_amount)
+grey_station_amount = station_amount - blue_station_amount
+for i in range(blue_station_amount):
+    x, y = random.randint(0, screen.get_width()), random.randint(0, screen.get_height())
+    new_station = Station(x, y, "graphics/station1.png")
+    station_group.add(new_station)  
+    blue_stations.append([x, y])      
+for i in range(grey_station_amount):
+    new_station = Station(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()), "graphics/station0.png")
     station_group.add(new_station)
 
-station_group.draw(screen)
-
-# check attribute
-
-if "graphics"
+while True:
+    screen.fill("lawngreen")
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+        if event.type == VIDEORESIZE:
+            if not fullscreen:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            blue_stations.clear()
+            station_group.empty()
+            blue_station_amount = random.randint(1, station_amount)
+            grey_station_amount = station_amount - blue_station_amount
+            for i in range(blue_station_amount):
+                x, y = random.randint(0, screen.get_width()), random.randint(0, screen.get_height())
+                new_station = Station(x, y, "graphics/station1.png")
+                station_group.add(new_station)  
+                blue_stations.append([x, y])      
+            for i in range(grey_station_amount):
+                new_station = Station(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()), "graphics/station0.png")
+                station_group.add(new_station)
+        if event.type == KEYDOWN:
+            if event.key == K_f:
+                fullscreen = not fullscreen
+                if fullscreen:
+                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
+                blue_stations.clear()
+                station_group.empty()
+                blue_station_amount = random.randint(1, station_amount)
+                grey_station_amount = station_amount - blue_station_amount
+                for i in range(blue_station_amount):
+                    x, y = random.randint(0, screen.get_width()), random.randint(0, screen.get_height())
+                    new_station = Station(x, y, "graphics/station1.png")
+                    station_group.add(new_station)  
+                    blue_stations.append([x, y])      
+                for i in range(grey_station_amount):
+                    new_station = Station(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()), "graphics/station0.png")
+                    station_group.add(new_station)
+    
+    print(blue_stations)
+    station_group.draw(screen)
+    pygame.display.update()
+    clock.tick(60)

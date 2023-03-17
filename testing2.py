@@ -4,6 +4,32 @@ from pygame.locals import *
 import random
 import math
 
+class RoadHorizontal(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load("graphics/road2.png"), (213, 60))  # (80, 60) för road.png
+        self.rect = self.image.get_rect()
+        self.rect.center = x, y
+
+class RoadVertical(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.transform.rotate(pygame.image.load("graphics/road2.png"), 90), (60, 213))  # (60, 80) för road.png
+        self.rect = self.image.get_rect()
+        self.rect.center = x, y
+
+class Extrabus(pygame.sprite.Sprite):
+    def __init__(self, path, x_pos, y_pos, xnode, last_station):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (75, 30))
+        self.path = path
+        self.rect = self.image.get_rect()
+        self.rect.centerx = x_pos
+        self.rect.centery = y_pos
+        self.xnode = xnode
+        self.last_station = last_station
+
+
 def list_duplicates_of(seq,item):
     start_at = -1
     locs = []
@@ -25,12 +51,6 @@ def product(*args, repeat=1):
     for prod in result:
         yield tuple(prod)
 
-def longest_sublist(nested_list):
-    lp = []
-    for i in nested_list:
-        lp.append(len(i))
-    return max(lp)
-
 def empty_list_remove(input_list):
     new_list = []
     for ele in input_list:
@@ -38,64 +58,63 @@ def empty_list_remove(input_list):
             new_list.append(ele)
     return new_list
 
-colors = ["blue", "grey"] 
-station_colors, xy_list, blue_stations = [], [], []
+def longest_sublist(nested_list):
+    lp = []
+    for i in nested_list:
+        lp.append(len(i))
+    return max(lp)
 
-rows = random.randint(3, 8)
+rows = random.randint(7, 12)
 station_amount = random.randint(2, (rows - 1) * (rows - 2))
 
-for i in range(station_amount):
-    station_color = random.choice(colors)
-    xy = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+pygame.init()
+screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
+pygame.display.set_caption("Simulation")
+fullscreen = False
+clock = pygame.time.Clock()
 
-    while xy in xy_list:
-        xy = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+bus = pygame.image.load("graphics\stor-buss.png")
+bus = pygame.transform.scale(bus, (110, 45))
+
+bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+
+speed_big = 7
+speed_small = 4
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            exit()
+        if event.type == VIDEORESIZE:
+            if not fullscreen:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            start = True
+            bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+        if event.type == KEYDOWN:
+            if event.key == K_f:
+                fullscreen = not fullscreen
+                if fullscreen:
+                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                else:
+                    screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
+                start = True
+                bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+
+    road_group = pygame.sprite.Group()
+    for i in range(1, rows):
+        for j in range(math.ceil(screen.get_width()/213)):
+            new_h_road = RoadHorizontal(screen.get_width()/213 + 213 * j, screen.get_height() / rows * i)
+            road_group.add(new_h_road)
+        for j in range(math.ceil(screen.get_height()/213)):
+            new_v_road = RoadVertical(screen.get_width() / rows * i, screen.get_height()/213 + 213 * j)
+            road_group.add(new_v_road)
         
-    xy_list.append(xy)
-    station_colors.append(station_color)
-    if station_color == "blue":
-        blue_stations.append(xy)
+    screen.blit(bk_image, (0,0))
+    road_group.draw(screen)
+    
+    screen.blit(bus, bus_rect)
+    extrabus_group.draw(screen)
 
-if "blue" not in station_colors:
-    index = random.randint(0, len(station_colors) - 1)
-    station_colors[index] = "blue"
-    blue_stations.append(xy_list[index])
-
-blue_stations.sort(key=lambda x: x[0])
-x = blue_stations[0][0]
-n = 0
-xy_list2 = [[blue_stations[0]]]
-
-for i in blue_stations[1:]:
-    if i[0] == x:
-        xy_list2[n].append(i)
-    else:
-        xy_list2.append([i])
-        x = blue_stations[blue_stations.index(i)][0]
-        n += 1
-
-print(xy_list2)
-path = []
-
-for i in range(longest_sublist(xy_list2)):
-    paths = list(product(*xy_list2))
-    buh = 0
-    d = []
-
-    for e, ii in enumerate(paths):
-        for x in range(len(ii)-1):
-            buh += math.dist(ii[x], ii[x+1])
-        d.append(buh)
-        buh = 0
-
-    ind = d.index(min(d))
-    path.append(list(paths[ind]))
-
-    for b in range(len(xy_list2)):
-        for j in path[i]:   # kan vara annorlunda ?
-            if j in xy_list2[b]:
-                xy_list2[b].remove(j)
-    xy_list2 = empty_list_remove(xy_list2)
-    print(xy_list2)
-    print(paths)
-    print(path)
+    pygame.display.update()
+    clock.tick(60)
