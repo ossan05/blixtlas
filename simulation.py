@@ -28,24 +28,6 @@ class Extrabus(pygame.sprite.Sprite):
         self.rect.centery = y_pos
         self.xnode = xnode
         self.last_station = last_station
-    def update(self):
-        global station_colors, re
-        for bus in extrabus_group:
-            if bus.rect.centerx < screen.get_width() / rows * (bus.path[bus.xnode][0] + 1):
-                bus.rect.centerx += 2
-            elif bus.rect.centery < screen.get_height() / rows * bus.path[bus.xnode][1] - 2:
-                bus.rect.centery += 2
-            elif bus.rect.centery > screen.get_height() / rows * bus.path[bus.xnode][1] + 2:
-                bus.rect.centery -= 2
-            elif bus.xnode != len(bus.path) - 1:
-                station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-                bus.xnode += 1
-            elif bus.rect.centerx < screen.get_width():
-                bus.rect.centerx += 2
-                if bus.last_station:
-                    station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-                    re += 1
-                    bus.last_station = False
 
 
 def list_duplicates_of(seq,item):
@@ -164,8 +146,8 @@ pygame.display.set_caption("Simulation")
 fullscreen = False
 clock = pygame.time.Clock()
 
-bus = pygame.image.load("graphics\stor-buss.png")
-bus = pygame.transform.scale(bus, (110, 45))
+big_bus = pygame.image.load("graphics\stor-buss.png")
+big_bus = pygame.transform.scale(big_bus, (110, 45))
 
 bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
 
@@ -198,8 +180,8 @@ while True:
                 bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
 
     if start:
-        bus_start = screen.get_height() * int(rows / 2) / rows
-        bus_rect = bus.get_rect(center = (0, bus_start)) 
+        big_bus_start = screen.get_height() * int(rows / 2) / rows
+        big_bus_rect = big_bus.get_rect(center = (0, big_bus_start)) 
         extrabus_group = pygame.sprite.Group()
         re = 0
         node = 0
@@ -226,18 +208,17 @@ while True:
     for i in range(station_amount):
         pygame.draw.rect(screen, (station_colors[i]), pygame.Rect((screen.get_width() * 1.5 + xy_list[i][0] * screen.get_width()) / rows, screen.get_height() * xy_list[i][1] / rows, 15, 15))
     
-    # Big Bus Movement
-    if bus_rect.centerx < screen.get_width() / rows * (path[0][node][0] + 1):
-        bus_rect.centerx += speed
-    elif bus_rect.centery < screen.get_height() / rows * path[0][node][1] - speed:
-        bus_rect.centery += speed
-    elif bus_rect.centery > screen.get_height() / rows * path[0][node][1] + speed:
-        bus_rect.centery -= speed
+    if big_bus_rect.centerx < screen.get_width() / rows * (path[0][node][0] + 1):
+        big_bus_rect.centerx += speed
+    elif big_bus_rect.centery < screen.get_height() / rows * path[0][node][1] - speed:
+        big_bus_rect.centery += speed
+    elif big_bus_rect.centery > screen.get_height() / rows * path[0][node][1] + speed:
+        big_bus_rect.centery -= speed
     elif node != len(path[0]) - 1:
         station_colors[xy_list.index(path[0][node])] = "grey"
         node += 1
-    elif bus_rect.left < screen.get_width():
-        bus_rect.centerx += speed
+    elif big_bus_rect.left < screen.get_width():
+        big_bus_rect.centerx += speed
         if last_station_on:
             station_colors[xy_list.index(path[0][node])] = "grey"
             last_station_on = False
@@ -245,9 +226,24 @@ while True:
     elif re == len(path):
         start = True
 
-    screen.blit(bus, bus_rect)
-    extrabus_group.draw(screen)
-    extrabus_group.update()
+    for bus in extrabus_group:
+        if bus.rect.centerx < screen.get_width() / rows * (bus.path[bus.xnode][0] + 1):
+            bus.rect.centerx += 2
+        elif bus.rect.centery < screen.get_height() / rows * bus.path[bus.xnode][1] - 2:
+            bus.rect.centery += 2
+        elif bus.rect.centery > screen.get_height() / rows * bus.path[bus.xnode][1] + 2:
+            bus.rect.centery -= 2
+        elif bus.xnode != len(bus.path) - 1:
+            station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
+            bus.xnode += 1
+        elif bus.rect.centerx < screen.get_width():
+            bus.rect.centerx += 2
+            if bus.last_station:
+                station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
+                re += 1
+                bus.last_station = False
 
+    screen.blit(big_bus, big_bus_rect)
+    extrabus_group.draw(screen)
     pygame.display.update()
     clock.tick(60)
