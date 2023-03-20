@@ -12,6 +12,10 @@ class Station(pygame.sprite.Sprite):
         self.xy = xy   
         self.rect.centerx = (screen.get_width() * 1.5 + xy[0] * screen.get_width()) / rows
         self.rect.centery = screen.get_height() * xy[1] / rows
+    def reset(self):
+        self.image_path = random.choice(["graphics/station1.png", "graphics/station0.png"])
+        self.image = pygame.transform.scale(pygame.image.load(self.image_path), (45, 30))
+        
 
 def number_of_buses(col):
     l = []
@@ -25,7 +29,7 @@ def number_of_buses(col):
     return max(l)
 
 rows = 5
-station_amount = 7
+station_amount = random.randint(2, (rows - 1) * (rows - 2))
 fullscreen = False
 
 pygame.init()
@@ -56,8 +60,7 @@ for i in range(grey_station_amount):
     grey_stations.append(xy_grey)
     col_grey.append(xy_grey[0])
 
-print(number_of_buses(col_blue))
-print(number_of_buses(col_blue + col_grey))
+blue_stations
 
 while True:
     screen.fill("lawngreen")

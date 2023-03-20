@@ -1,239 +1,281 @@
-import pygame
+import pygame, math, random
 from sys import exit
 from pygame.locals import *
-import random
-import math
 
-class Extrabus(pygame.sprite.Sprite):
-    def __init__(self, path, x_pos, y_pos, xnode, last_station):
+
+class RoadHorizontal(pygame.sprite.Sprite):
+    def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.transform.scale(pygame.image.load("graphics\liten-buss.png"), (50, 20))
-        self.path = path
+        self.image = pygame.transform.scale(pygame.image.load("graphics/road2.png"), (213, 60))  # (80, 60)
         self.rect = self.image.get_rect()
-        self.rect.centerx = x_pos
-        self.rect.centery = y_pos
-        self.xnode = xnode
-        self.last_station = last_station
-    def update(self):
-        global station_colors
-        for bus in extrabus_group:
-            if bus.rect.centerx < screen.get_width() / rows * (bus.path[bus.xnode][0] + 1):
-                bus.rect.centerx += 2
-            elif bus.rect.centery < screen.get_height() / rows * bus.path[bus.xnode][1] - 2:
-                bus.rect.centery += 2
-            elif bus.rect.centery > screen.get_height() / rows * bus.path[bus.xnode][1] + 2:
-                bus.rect.centery -= 2
-            elif bus.xnode != len(bus.path) - 1:
-                station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-                bus.xnode += 1
-            elif bus.rect.centerx < screen.get_width():
-                bus.rect.centerx += 2
-                if bus.last_station:
-                    station_colors[xy_list.index(bus.path[bus.xnode])] = "grey"
-                    bus.last_station = False
+        self.rect.center = [x, y]
 
+class RoadVertical(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.transform.scale(pygame.transform.rotate(pygame.image.load("graphics/road2.png"), 90), (60, 213))  # (60, 80)
+        self.rect = self.image.get_rect()
+        self.rect.center = [x, y]
 
-def list_duplicates_of(seq,item):
-    start_at = -1
-    locs = []
-    while True:
-        try:
-            loc = seq.index(item,start_at+1)
-        except ValueError:
-            break
-        else:
-            locs.append(loc)
-            start_at = loc
-    return locs
-
-def product(*args, repeat=1):
-    pools = [tuple(pool) for pool in args] * repeat
-    result = [[]]
-    for pool in pools:
-        result = [x+[y] for x in result for y in pool]
-    for prod in result:
-        yield tuple(prod)
-
-def empty_list_remove(input_list):
-    new_list = []
-    for ele in input_list:
-        if ele:
-            new_list.append(ele)
-    return new_list
-
-def longest_sublist(nested_list):
-    lp = []
-    for i in nested_list:
-        lp.append(len(i))
-    return max(lp)
-
-def make_path():
-    global path, blue_stations
-    blue_stations.sort(key=lambda x: x[0])
-    x = blue_stations[0][0]
-    n = 0
-    xy_list2 = [[blue_stations[0]]]
-    path = []
-
-    for i in blue_stations[1:]:
-        if i[0] == x:
-            xy_list2[n].append(i)
-        else:
-            xy_list2.append([i])
-            x = blue_stations[blue_stations.index(i)][0]
-            n += 1
-
-    for i in range(longest_sublist(xy_list2)):
-        paths = list(product(*xy_list2))
-        buh = 0
-        d = []
-
-        for e, ii in enumerate(paths):  # tveksam ändring
-            for x in range(len(ii)-1):
-                buh += math.dist(ii[x], ii[x+1])
-            d.append(buh)
-            buh = 0
-
-        ind = d.index(min(d))
-        path.append(list(paths[ind]))
-
-        for b in range(len(xy_list2)):
-            for j in path[i]:   # kan vara annorlunda ?
-                if j in xy_list2[b]:
-                    xy_list2[b].remove(j)
-        xy_list2 = empty_list_remove(xy_list2)
-    return path
-
-colors = ["blue", "grey"]
-station_colors, xy_list, blue_stations = [], [], []
-
-rows = random.randint(7, 10)
-station_amount = random.randint(2, (rows - 1) * (rows - 2))
-
-for i in range(station_amount):
-    station_color = random.choice(colors)
-    xy = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
-
-    while xy in xy_list:
-        xy = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+class Station(pygame.sprite.Sprite):
+    def __init__(self, xy, image):
+        super().__init__()
+        self.image_path = image
+        self.image = pygame.transform.scale(pygame.image.load(self.image_path), (45, 30)) # 0.662797944631
+        self.rect = self.image.get_rect()   
+        self.xy = xy   
+        self.rect.centerx = (screen.get_width() * 1.5 + xy[0] * screen.get_width()) / rows
+        self.rect.centery = screen.get_height() * xy[1] / rows
+    # def reset(self):
+    #     self.image_path = random.choice(["graphics/station1.png", "graphics/station0.png"])
+    #     self.image = pygame.transform.scale(pygame.image.load(self.image_path), (45, 30))
         
-    xy_list.append(xy)
-    station_colors.append(station_color)
-    if station_color == "blue":
-        blue_stations.append(xy)
 
-if "blue" not in station_colors:
-    index = random.randint(0, len(station_colors) - 1)
-    station_colors[index] = "blue"
-    blue_stations.append(xy_list[index])
+class Bus(pygame.sprite.Sprite):
+    def __init__(self, y, image, image_size, dest):
+        super().__init__()
+        self.y = y
+        self.image_path = image
+        self.image = pygame.transform.scale(pygame.image.load(self.image_path), (image_size))  # 110, 45; 75, 30
+        self.rect = self.image.get_rect()
+        self.rect.centerx = 0
+        self.rect.centery = screen.get_height() * y / rows
+        self.dest = dest
+    def update(self):
+        speed = 5
+        if self.rect.centerx < self.dest[0] - screen.get_width() / (rows * 2):
+            self.rect.centerx += speed
+        elif self.rect.centery < self.dest[1] - speed:
+            self.rect.centery += speed
+        elif self.rect.centery > self.dest[1] + speed:
+            self.rect.centery -= speed
+        elif self.rect.centerx < self.dest[0]:
+            self.rect.centerx += speed
 
-path = make_path()
 
-def reset():
-    global blue_stations, station_colors, station_color
-    blue_stations, station_colors = [], []
-    for i in range(station_amount):
-        station_color = random.choice(colors)
-        station_colors.append(station_color)
-        if station_color == "blue":
-            blue_stations.append(xy_list[i])
-        if "blue" not in station_colors:
-            index = random.randint(0, len(station_colors) - 1)
-            station_colors[index] = "blue"
-            blue_stations.append(xy_list[index])
-    return make_path()
+class Badbus(pygame.sprite.Sprite):
+    def __init__(self, y, image, image_size, dest):
+        super().__init__()
+        self.y = y
+        self.image_path = image
+        self.image = pygame.transform.scale(pygame.image.load(self.image_path), (image_size))  # 110, 45; 75, 30
+        self.rect = self.image.get_rect()
+        self.rect.centerx = 0
+        self.rect.centery = screen.get_height() * y / rows
+        self.dest = dest
+    def update(self):
+        speed = 5
+        if self.rect.centerx < self.dest[0] - screen.get_width() / (rows * 2):
+            self.rect.centerx += speed
+        elif self.rect.centery < self.dest[1] - speed:
+            self.rect.centery += speed
+        elif self.rect.centery > self.dest[1] + speed:
+            self.rect.centery -= speed
+        elif self.rect.centerx < self.dest[0]:
+            self.rect.centerx += speed
 
+def resize():
+    global bk_image
+
+    bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
+
+    road_group.empty()
+    for i in range(1, rows):
+        for j in range(math.ceil(screen.get_width()/213 + 1)):
+            new_h_road = RoadHorizontal(screen.get_width()/213 + 213 * j, screen.get_height() / rows * i)
+            road_group.add(new_h_road)
+        for j in range(math.ceil(screen.get_height()/213 + 1)):
+            new_v_road = RoadVertical(screen.get_width() / rows * i, screen.get_height()/213 + 213 * j)
+            road_group.add(new_v_road)
+
+    for station in station_group:
+        station.rect.centerx = (screen.get_width() * 1.5 + station.xy[0] * screen.get_width()) / rows
+        station.rect.centery = screen.get_height() * station.xy[1] / rows
+
+    for bus in bus_group:
+        bus.rect.centery = screen.get_height() * bus.y / rows
+        bus.rect.centerx = 0
+    
+    new_destfull(row_bus)
+
+def number_of_buses(col):
+    l = []
+    n = 0
+    for i in col:
+        for j in col:
+            if i == j:
+                n += 1
+        l.append(n)
+        n = 0
+    return max(l)
+
+def new_destfull(row):
+    taken = []
+    dist = []
+    dest = []
+
+    for bus in bus_group:
+        dist.clear()
+        dest.clear()
+        for station in station_group:
+            if list(station.rect.center) not in taken and station.rect.centerx == (screen.get_width() * 1.5 + row * screen.get_width()) / rows and station.rect.centerx - bus.rect.centerx > 10 and station.image_path == "graphics/station1.png":  # having ten is a possible bug
+                print(station.rect.center)
+                dist.append([math.hypot(station.rect.centerx - bus.rect.centerx, station.rect.centery - bus.rect.centery)])
+                dest.append([station.rect.centerx, station.rect.centery])
+        try:
+            bus.dest = dest[dist.index(min(dist))]
+            taken.append(bus.dest)
+            # print(bus.dest)
+            print(taken)
+        except ValueError:
+            return
+        
+def new_destempty(row):
+    taken = []
+    dist = []
+    dest = []
+
+    for bus in badbus_group:
+        dist.clear()
+        dest.clear()
+        for station in station_group:
+            if list(station.rect.center) not in taken and station.rect.centerx == (screen.get_width() * 1.5 + row * screen.get_width()) / rows and station.rect.centerx - bus.rect.centerx > 10:  # having ten is a possible bug
+                print(station.rect.center)
+                dist.append([math.hypot(station.rect.centerx - bus.rect.centerx, station.rect.centery - bus.rect.centery)])
+                dest.append([station.rect.centerx, station.rect.centery])
+        try:
+            bus.dest = dest[dist.index(min(dist))]
+            taken.append(bus.dest)
+            # print(bus.dest)
+            print(taken)
+        except ValueError:
+            return
+
+rows = 5
+station_amount = random.randint(2, (rows - 1) * (rows - 2))
 
 pygame.init()
 screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
-pygame.display.set_caption("Simulation")
-fullscreen = False
 clock = pygame.time.Clock()
 
-text = "Smarta bussar"
-test_font = pygame.font.SysFont("arial", 100)
-text_surface = test_font.render(text, False, "black")
-text_width, text_height = test_font.size(text)
+bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
 
-bus = pygame.image.load("graphics\stor-buss.png")
-bus = pygame.transform.scale(bus, (50, 20))
+road_group = pygame.sprite.Group()
+for i in range(1, rows):
+    for j in range(math.ceil(screen.get_width()/213)):
+        new_h_road = RoadHorizontal(screen.get_width()/213 + 213 * j, screen.get_height() / rows * i)
+        road_group.add(new_h_road)
+    for j in range(math.ceil(screen.get_height()/213)):
+        new_v_road = RoadVertical(screen.get_width() / rows * i, screen.get_height()/213 + 213 * j)
+        road_group.add(new_v_road)
 
-road_thickness = 25
-speed = 7
-node = 0
+blue_stations, grey_stations = [], []
+col_blue, col_grey = [], [] 
+
+station_group = pygame.sprite.Group()
+blue_station_amount = random.randint(1, station_amount - 1)
+grey_station_amount = station_amount - blue_station_amount
+
+for i in range(blue_station_amount):
+    xy_blue = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+    while xy_blue in blue_stations:
+        xy_blue = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+    new_station = Station(xy_blue, "graphics/station1.png")
+    station_group.add(new_station)  
+    blue_stations.append(xy_blue) 
+    col_blue.append(xy_blue[0])
+
+for i in range(grey_station_amount):
+    xy_grey = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+    while xy_grey in grey_stations or xy_grey in blue_stations:
+        xy_grey = [random.randint(0, rows - 3), random.randint(1, rows - 1)]
+    new_station = Station(xy_grey, "graphics/station0.png")
+    station_group.add(new_station)
+    grey_stations.append(xy_grey)
+    col_grey.append(xy_grey[0])
+
+big_bus = Bus(int(rows / 2), "graphics\stor-buss.png", (110, 45), [0, screen.get_height() * i / rows])
+bus_group = pygame.sprite.Group(big_bus)
+
+for i in range(1, number_of_buses(col_blue)):
+    new_bus = Bus(i, "graphics/liten-buss.png", (75, 30), [0, screen.get_height() * i / rows])
+    bus_group.add(new_bus)
+
+badbus_group = pygame.sprite.Group()
+
+for i in range(1, number_of_buses(col_blue + col_grey) + 1):
+    new_badbus = Badbus(i, "graphics/liten-bussred.jpg", (75, 30), [0, screen.get_height() * i / rows])
+    badbus_group.add(new_badbus)
 
 
-last_station_on = True
+fullscreen = False
 
-start = True
+new_destfull(0)
+new_destempty(0)
+
+print(len(badbus_group))
+print(col_blue + col_grey)
+
+# for i in range(len(d[0])):
+#     index_values = [lst[i] for lst in d]
+#     min_val = min(index_values)
+#     min_values.append(min_val)
+row_bus = 0
+row_badbus = 0
 
 while True:
-    screen.fill("lightgrey")
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
         if event.type == VIDEORESIZE:
             if not fullscreen:
-                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-            start = True
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)   
+            resize()     
         if event.type == KEYDOWN:
             if event.key == K_f:
                 fullscreen = not fullscreen
                 if fullscreen:
-                    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+                    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
                 else:
-                    screen = pygame.display.set_mode((800, 400), pygame.RESIZABLE)
-                start = True
+                    screen = pygame.display.set_mode((800,400), pygame.RESIZABLE)
 
-    if start:
-        bus_start = screen.get_height() * int(rows / 2) / rows
-        bus_rect = bus.get_rect(center = (0, bus_start)) 
-        extrabus_group = pygame.sprite.Group()
-        for i in path[1:]:
-            new_bus = Extrabus(i, 0, screen.get_height() * i[0][1] / rows, 0, True)
-            extrabus_group.add(new_bus)
-        node = 0
-        print(path)
-        last_station_on = True  
-        if "blue" in station_colors:
-            start = False
-        else:
-            path = reset()
-            node = 0
+    # reset
+    for count, station in enumerate(station_group, start=1):
+        if station.image_path == "graphics/station1.png":
+            break
+        elif count == len(station_group):
+            print("reset")
 
+    for count, bus in enumerate(bus_group, start=1):
+        if bus.dest[0] > bus.rect.centerx:
+            break
+        elif count == len(bus_group):
+            row_bus += 1
+            new_destfull(row_bus)
 
-    # Road building
-    for i in range(1, rows):
-        pygame.draw.rect(screen, ("black"), pygame.Rect(0, screen.get_height() / rows * i - road_thickness / 2, screen.get_width(), road_thickness))
-        pygame.draw.rect(screen, ("black"), pygame.Rect(screen.get_width() / rows * i - road_thickness / 2, 0, road_thickness, screen.get_height()))
-    
-    for i in range(station_amount):
-        pygame.draw.rect(screen, (station_colors[i]), pygame.Rect((screen.get_width() * 1.5 + xy_list[i][0] * screen.get_width()) / rows, screen.get_height() * xy_list[i][1] / rows, 15, 15))
-    
-    # Big Bus Movement
-    if bus_rect.centerx < screen.get_width() / rows * (path[0][node][0] + 1):
-        bus_rect.centerx += speed
-    elif bus_rect.centery < screen.get_height() / rows * path[0][node][1] - speed:
-        bus_rect.centery += speed
-    elif bus_rect.centery > screen.get_height() / rows * path[0][node][1] + speed:
-        bus_rect.centery -= speed
-    elif node != len(path[0]) - 1:
-        station_colors[xy_list.index(path[0][node])] = "grey"
-        node += 1
-    elif bus_rect.left < screen.get_width():
-        bus_rect.centerx += speed
-        if last_station_on:
-            station_colors[xy_list.index(path[0][node])] = "grey"
-            last_station_on = False
+    for count, bus in enumerate(badbus_group, start=1):
+        if bus.dest[0] > bus.rect.centerx:
+            break
+        elif count == len(badbus_group):
+            row_badbus += 1
+            new_destempty(row_badbus)
 
-    # smol bus movement
+    # Collision between station and bus
+    busstation_collision = pygame.sprite.groupcollide(station_group, bus_group, False, False)
+    if busstation_collision:
+        for station in busstation_collision:
+            station.image_path = "graphics/station0.png"
+            station.image = pygame.transform.scale(pygame.image.load(station.image_path), (45, 30))
 
+    # Sätt in övre kod i klassen om du har tid
 
-    screen.blit(bus, bus_rect)
-    screen.blit(text_surface, ((screen.get_width() - text_width)/ 2, (screen.get_height() - text_width) / 10))
-    extrabus_group.draw(screen)
-    extrabus_group.update()
-
+    bus_group.update()
+    badbus_group.update()
+    screen.blit(bk_image, (0, 0))
+    road_group.draw(screen)
+    station_group.draw(screen)
+    bus_group.draw(screen)
+    badbus_group.draw(screen)
     pygame.display.update()
     clock.tick(60)
