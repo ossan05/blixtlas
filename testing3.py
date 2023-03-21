@@ -75,7 +75,7 @@ class Badbus(pygame.sprite.Sprite):
             self.rect.centerx += speed
 
 def resize():
-    global bk_image
+    global bk_image, row_badbus, row_bus
 
     bk_image = pygame.transform.scale(pygame.image.load("graphics/grass.png"), (screen.get_width(), screen.get_height()))
 
@@ -95,8 +95,18 @@ def resize():
     for bus in bus_group:
         bus.rect.centery = screen.get_height() * bus.y / rows
         bus.rect.centerx = 0
+        bus.dest = [0, screen.get_height() * bus.y / rows]
+        print(bus.rect.center, bus.dest)
     
-    new_destfull(row_bus)
+    for bus in badbus_group:
+        bus.rect.centery = screen.get_height() * bus.y / rows
+        bus.rect.centerx = 0
+        bus.dest = [0, screen.get_height() * bus.y / rows]
+        print(bus.rect.center, bus.dest)
+
+    row_bus = 0
+    row_badbus = 0
+        
 
 def number_of_buses(col):
     l = []
@@ -118,15 +128,13 @@ def new_destfull(row):
         dist.clear()
         dest.clear()
         for station in station_group:
-            if list(station.rect.center) not in taken and station.rect.centerx == (screen.get_width() * 1.5 + row * screen.get_width()) / rows and station.rect.centerx - bus.rect.centerx > 10 and station.image_path == "graphics/station1.png":  # having ten is a possible bug
-                print(station.rect.center)
+            if list(station.rect.center) not in taken and station.xy[0] == row and station.rect.centerx - bus.rect.centerx > 10 and station.image_path == "graphics/station1.png":  # having ten is a possible bug
                 dist.append([math.hypot(station.rect.centerx - bus.rect.centerx, station.rect.centery - bus.rect.centery)])
                 dest.append([station.rect.centerx, station.rect.centery])
         try:
             bus.dest = dest[dist.index(min(dist))]
             taken.append(bus.dest)
             # print(bus.dest)
-            print(taken)
         except ValueError:
             return
         
@@ -139,17 +147,52 @@ def new_destempty(row):
         dist.clear()
         dest.clear()
         for station in station_group:
-            if list(station.rect.center) not in taken and station.rect.centerx == (screen.get_width() * 1.5 + row * screen.get_width()) / rows and station.rect.centerx - bus.rect.centerx > 10:  # having ten is a possible bug
-                print(station.rect.center)
+            if list(station.rect.center) not in taken and station.xy[0] == row and station.rect.centerx - bus.rect.centerx > 10:  # having ten is a possible bug
                 dist.append([math.hypot(station.rect.centerx - bus.rect.centerx, station.rect.centery - bus.rect.centery)])
                 dest.append([station.rect.centerx, station.rect.centery])
         try:
             bus.dest = dest[dist.index(min(dist))]
             taken.append(bus.dest)
             # print(bus.dest)
-            print(taken)
         except ValueError:
             return
+
+def reset():
+    global blue_station_amount, grey_station_amount, col_blue, col_grey, bus_group, badbus_group, row_badbus, row_bus
+
+    blue_station_amount = random.randint(1, station_amount - 1)
+    grey_station_amount = station_amount - blue_station_amount
+    col_blue.clear()
+    col_grey.clear()
+
+    for station in station_group:
+        color = random.choice(["graphics/station1.png", "graphics/station0.png"])
+        station.image_path = color
+        station.image = pygame.transform.scale(pygame.image.load(station.image_path), (45, 30))
+        if color == "graphics/station1.png":
+            col_blue.append(station.xy[0])
+        else:
+            col_grey.append(station.xy[0])
+    
+    bus_group.empty()
+    big_bus = Bus(int(rows / 2), "graphics\stor-buss.png", (110, 45), [0, screen.get_height() * int(rows / 2) / rows])
+    bus_group = pygame.sprite.Group(big_bus)
+
+    try:
+        for i in range(1, number_of_buses(col_blue)):
+            new_bus = Bus(i, "graphics/liten-buss.png", (75, 30), [0, screen.get_height() * i / rows])
+            bus_group.add(new_bus)
+    except ValueError:
+        pass
+
+    badbus_group.empty()
+    badbus_group = pygame.sprite.Group()
+
+    for i in range(1, number_of_buses(col_blue + col_grey) + 1):
+        new_badbus = Badbus(i, "graphics/liten-spokbuss.png", (75, 30), [0, screen.get_height() * i / rows])
+        badbus_group.add(new_badbus)
+    row_bus = 0
+    row_badbus = 0
 
 rows = 5
 station_amount = random.randint(2, (rows - 1) * (rows - 2))
@@ -194,7 +237,7 @@ for i in range(grey_station_amount):
     grey_stations.append(xy_grey)
     col_grey.append(xy_grey[0])
 
-big_bus = Bus(int(rows / 2), "graphics\stor-buss.png", (110, 45), [0, screen.get_height() * i / rows])
+big_bus = Bus(int(rows / 2), "graphics\stor-buss.png", (110, 45), [0, screen.get_height() * int(rows / 2) / rows])
 bus_group = pygame.sprite.Group(big_bus)
 
 for i in range(1, number_of_buses(col_blue)):
@@ -204,7 +247,7 @@ for i in range(1, number_of_buses(col_blue)):
 badbus_group = pygame.sprite.Group()
 
 for i in range(1, number_of_buses(col_blue + col_grey) + 1):
-    new_badbus = Badbus(i, "graphics/liten-bussred.jpg", (75, 30), [0, screen.get_height() * i / rows])
+    new_badbus = Badbus(i, "graphics/liten-spokbuss.png", (75, 30), [0, screen.get_height() * i / rows])
     badbus_group.add(new_badbus)
 
 
@@ -213,8 +256,6 @@ fullscreen = False
 new_destfull(0)
 new_destempty(0)
 
-print(len(badbus_group))
-print(col_blue + col_grey)
 
 # for i in range(len(d[0])):
 #     index_values = [lst[i] for lst in d]
@@ -232,6 +273,9 @@ while True:
             if not fullscreen:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)   
             resize()     
+            print(row_badbus, row_bus)
+            new_destfull(row_bus)
+            new_destempty(row_badbus)
         if event.type == KEYDOWN:
             if event.key == K_f:
                 fullscreen = not fullscreen
@@ -239,13 +283,26 @@ while True:
                     screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
                 else:
                     screen = pygame.display.set_mode((800,400), pygame.RESIZABLE)
-
+    print(row_badbus, row_bus)
     # reset
-    for count, station in enumerate(station_group, start=1):
-        if station.image_path == "graphics/station1.png":
-            break
-        elif count == len(station_group):
-            print("reset")
+    if row_badbus >= rows - 2 and row_bus >= rows - 2:
+        # pygame.time.delay(2000)  # pause lite time.wait går också
+        reset()
+        new_destfull(row_bus)
+        new_destempty(row_badbus)
+
+    # for count, station in enumerate(station_group, start=1):
+    #     if station.image_path == "graphics/station1.png":
+    #         break
+    #     elif count == len(station_group):
+    #         print("reset")
+    if row_badbus >= rows - 2:
+        for bus in badbus_group:
+            bus.rect.x += 5
+    
+    if row_bus >= rows - 2:
+        for bus in bus_group:
+            bus.rect.x += 5    
 
     for count, bus in enumerate(bus_group, start=1):
         if bus.dest[0] > bus.rect.centerx:
