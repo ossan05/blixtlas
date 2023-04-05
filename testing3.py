@@ -1,7 +1,10 @@
+# Releventa bibliotek för programmet
+
 import pygame, math, random
 from sys import exit
 from pygame.locals import *
 
+# Klass för vägar som går från väst till öst
 
 class RoadHorizontal(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -10,12 +13,16 @@ class RoadHorizontal(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
 
+# Klass för vägar som går från norr till syd
+
 class RoadVertical(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.transform.scale(pygame.transform.rotate(pygame.image.load("graphics/road2.png"), 90), (60, 213))  # (60, 80)
         self.rect = self.image.get_rect()
         self.rect.center = [x, y]
+
+# Klass för stationer
 
 class Station(pygame.sprite.Sprite):
     def __init__(self, xy, image):
@@ -26,10 +33,8 @@ class Station(pygame.sprite.Sprite):
         self.xy = xy   
         self.rect.centerx = (screen.get_width() * 1.5 + xy[0] * screen.get_width()) / rows
         self.rect.centery = screen.get_height() * xy[1] / rows
-    # def reset(self):
-    #     self.image_path = random.choice(["graphics/station1.png", "graphics/station0.png"])
-    #     self.image = pygame.transform.scale(pygame.image.load(self.image_path), (45, 30))
-        
+
+# Klass för dynamiska bussar
 
 class Bus(pygame.sprite.Sprite):
     def __init__(self, y, image, image_size, dest):
@@ -52,6 +57,7 @@ class Bus(pygame.sprite.Sprite):
         elif self.rect.centerx < self.dest[0]:
             self.rect.centerx += speed
 
+# Klass för vanliga bussar
 
 class Badbus(pygame.sprite.Sprite):
     def __init__(self, y, image, image_size, dest):
@@ -73,6 +79,8 @@ class Badbus(pygame.sprite.Sprite):
             self.rect.centery -= speed
         elif self.rect.centerx < self.dest[0]:
             self.rect.centerx += speed
+
+# Funktion som skalar storlek när man ändrar fönsterstorleken
 
 def resize():
     global bk_image, row_badbus, row_bus
@@ -106,7 +114,6 @@ def resize():
 
     row_bus = 0
     row_badbus = 0
-        
 
 def number_of_buses(col):
     l = []
@@ -134,7 +141,6 @@ def new_destfull(row):
         try:
             bus.dest = dest[dist.index(min(dist))]
             taken.append(bus.dest)
-            # print(bus.dest)
         except ValueError:
             return
         
@@ -153,7 +159,6 @@ def new_destempty(row):
         try:
             bus.dest = dest[dist.index(min(dist))]
             taken.append(bus.dest)
-            # print(bus.dest)
         except ValueError:
             return
 
@@ -256,11 +261,6 @@ fullscreen = False
 new_destfull(0)
 new_destempty(0)
 
-
-# for i in range(len(d[0])):
-#     index_values = [lst[i] for lst in d]
-#     min_val = min(index_values)
-#     min_values.append(min_val)
 row_bus = 0
 row_badbus = 0
 
@@ -283,19 +283,11 @@ while True:
                     screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
                 else:
                     screen = pygame.display.set_mode((800,400), pygame.RESIZABLE)
-    print(row_badbus, row_bus)
-    # reset
     if row_badbus >= rows - 2 and row_bus >= rows - 2:
-        # pygame.time.delay(2000)  # pause lite time.wait går också
         reset()
         new_destfull(row_bus)
         new_destempty(row_badbus)
 
-    # for count, station in enumerate(station_group, start=1):
-    #     if station.image_path == "graphics/station1.png":
-    #         break
-    #     elif count == len(station_group):
-    #         print("reset")
     if row_badbus >= rows - 2:
         for bus in badbus_group:
             bus.rect.x += 5
@@ -322,8 +314,9 @@ while True:
     busstation_collision = pygame.sprite.groupcollide(station_group, bus_group, False, False)
     if busstation_collision:
         for station in busstation_collision:
-            station.image_path = "graphics/station0.png"
-            station.image = pygame.transform.scale(pygame.image.load(station.image_path), (45, 30))
+            if station.image_path == "graphics/station1.png":
+                station.image_path = "graphics/station0.png"
+                station.image = pygame.transform.scale(pygame.image.load(station.image_path), (45, 30))
 
     # Sätt in övre kod i klassen om du har tid
 
